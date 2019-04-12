@@ -6,9 +6,10 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import datasets, transforms
 from Dataset import NewsGroupDataset
+import os
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 128)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -40,11 +41,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
-        self.fc1 = nn.Linear(2000, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, 2000)
+        self.fc1 = nn.Linear(2000, 500)
+        self.fc21 = nn.Linear(500, 20)
+        self.fc22 = nn.Linear(500, 20)
+        self.fc3 = nn.Linear(20, 500)
+        self.fc4 = nn.Linear(500, 2000)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -57,7 +58,7 @@ class VAE(nn.Module):
 
     def decode(self, z):
         h3 = F.relu(self.fc3(z))
-        return torch.sigmoid(self.fc4(h3))
+        return F.log_softmax(self.fc4(h3))
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 2000))
@@ -66,13 +67,12 @@ class VAE(nn.Module):
 
 
 model = VAE().to(device)
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.parameters(), lr=5e-5)
 
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 2000), reduction='sum')
-
+    BCE = -torch.mul(recon_x, x).sum()
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # https://arxiv.org/abs/1312.6114
@@ -93,17 +93,15 @@ def train(epoch):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader),
-                loss.item() / len(data)))
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
 
 
+os.remove("text.txt")
+file = open('text.txt', 'a')
 def test(epoch):
+    file.write("Epoch----->%d\n"%epoch)
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -111,6 +109,12 @@ def test(epoch):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
+            if i == 0:
+                n = min(data.size(0), 1)
+                comparison = torch.cat([data[:n],
+                                      recon_batch.view(args.batch_size, 2000)[:n]])
+                for i in comparison:
+                    file.write(', '.join("{:3.2f}".format(x) for x in i.numpy())+"\n")
 
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
@@ -119,3 +123,4 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
+    file.close()
