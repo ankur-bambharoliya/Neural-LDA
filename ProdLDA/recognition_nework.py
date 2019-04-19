@@ -1,22 +1,21 @@
-import torch
 from torch import nn
 from hyper_parameters import HyperParameters
 
 class RecognitionNetwork(nn.Module):
 
     def __init__(self, hps : HyperParameters):
-
+        super().__init__()
         self.hps = hps
         self.x_to_hidden = nn.Sequential(
             nn.Linear(
                 in_features=hps.rec_n_input,
-                out_features=hps.rec_fc1_hidden_units,
+                out_features=hps.rec_fc1_output_units,
                 bias=True
             ),
             nn.Softplus(),
             nn.Linear(
-                in_features=hps.rec_fc1_hidden_units,
-                out_features=hps.rec_fc2_hidden_units,
+                in_features=hps.rec_fc1_output_units,
+                out_features=hps.rec_fc2_output_units,
                 bias=True
             ),
             nn.Softplus(),
@@ -24,7 +23,7 @@ class RecognitionNetwork(nn.Module):
         )
         self.hidden_to_mu = nn.Sequential(
             nn.Linear(
-                in_features=hps.rec_fc2_hidden_units,
+                in_features=hps.rec_fc2_output_units,
                 out_features=hps.n_z,
                 bias=True,
             ),
@@ -34,7 +33,7 @@ class RecognitionNetwork(nn.Module):
         )
         self.hidden_to_log_sigma_sq = nn.Sequential(
             nn.Linear(
-                in_features=hps.rec_fc2_hidden_units,
+                in_features=hps.rec_fc2_output_units,
                 out_features=hps.n_z,
                 bias=True,
             ),
