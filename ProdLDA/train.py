@@ -116,11 +116,10 @@ def train():
         model.train()
         all_indices = torch.randperm(train_torch.size(0)).split(hps.batch_size)
         # Train
-        train_str = 'Epoch {} - (Training)'.format(epoch)
         start = time.time()
         for batch_indices in tqdm(all_indices,
                                   mininterval=2,
-                                  desc=train_str,
+                                  desc=' - (Training)',
                                   leave=False):
             if USE_CUDA:
                 batch_indices = batch_indices.cuda()
@@ -164,14 +163,14 @@ def train():
         # val_total_losses.append(val_total_loss_epoch)
         # val_recon_losses.append(val_recon_loss_epoch)
         # val_kl_losses.append(val_kl_loss_epoch)
-        print('{}\n\tLoss : {} '
-              '[Reconstruction={}, KL={}], Elapse {elapse:3.3f} s'.format(train_str,
+        print('Epoch {} - (Training)\n\tLoss : {} '
+              '[Reconstruction={}, KL={}], Elapse {elapse:3.3f} s'.format(epoch,
                                                                           total_loss_epoch,
                                                                           recon_loss_epoch,
                                                                           kl_loss_epoch,
                                                                           elapse=time.time() - start))
 
-        if epoch % 5 == 0:
+        if epoch % 500 == 0:
             plot_losses(
                 epoch,
                 [total_losses],#, val_total_losses],

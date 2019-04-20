@@ -22,7 +22,7 @@ class HyperParameters(object):
         self.variance = 1.
         self.momentum = .99
         self.learning_rate = 0.002
-        self.num_epochs = 80
+        self.num_epochs = 8000
         self.optimizer = 'Adam'
-        self.batch_size = 200
+        self.batch_size = 500
 
