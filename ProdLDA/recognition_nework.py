@@ -43,9 +43,7 @@ class RecognitionNetwork(nn.Module):
         )
 
     def forward(self, x):
-
         hidden = self.x_to_hidden(x)
-        z_mu = self.hidden_to_mu(hidden)
-        z_log_sigma_sq = self.hidden_to_log_sigma_sq(hidden)
-        return z_mu, z_log_sigma_sq
-
+        posterior_mean = self.hidden_to_mu(hidden)
+        posterior_log_var = self.hidden_to_log_sigma_sq(hidden)
+        return posterior_mean, posterior_log_var

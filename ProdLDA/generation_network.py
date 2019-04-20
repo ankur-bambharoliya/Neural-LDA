@@ -22,8 +22,4 @@ class GenerationNetwork(nn.Module):
         )
 
     def forward(self, z):
-        return self.x_reconstruction(
-            self.z_to_x_params(
-                z
-            )
-        )
+        return self.x_reconstruction(self.z_to_x_params(z))
