@@ -1,29 +1,28 @@
 
-import numpy as np
 import torch
-from torch.autograd import Variable
 from os import path
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
-import Dataset
 from prod_lda import ProdLDA
 from hyper_parameters import HyperParameters, TRAIN_DATA_PATH, TEST_DATA_PATH, USE_CUDA
-from tqdm import tqdm
 import time
 from Dataset import NewsGroupDataset
+import math
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if USE_CUDA else {}
 
 hps = HyperParameters()
 
+train_set = NewsGroupDataset(TRAIN_DATA_PATH, vocab_size=hps.vocab_size)
 train_loader = torch.utils.data.DataLoader(
-    NewsGroupDataset(TRAIN_DATA_PATH, vocab_size=2000),
+    train_set,
     batch_size=hps.batch_size, shuffle=True, **kwargs)
 
+test_set = NewsGroupDataset(TEST_DATA_PATH, vocab_size=2000)
 test_loader = torch.utils.data.DataLoader(
-    NewsGroupDataset(TEST_DATA_PATH, vocab_size=2000),
-    batch_size=hps.batch_size, shuffle=True, **kwargs)
+    test_set,
+    batch_size=len(test_set), shuffle=True, **kwargs)
 
 def plot_losses(n_epochs, losses, labels, title,
                 save=False, save_prefix=None, y_scale='linear', loss_type=''):
@@ -43,7 +42,7 @@ def plot_losses(n_epochs, losses, labels, title,
         plt.savefig(f)
 
     # show
-    plt.show()
+    plt.show(10)
 
 
 def train(model, optimizer):
@@ -62,7 +61,6 @@ def train(model, optimizer):
 
         model.train()
         # Train
-        start = time.time()
         for batch, (xs) in enumerate(train_loader):
             if USE_CUDA:
                 xs = xs.cuda()
@@ -85,14 +83,13 @@ def train(model, optimizer):
         recon_losses.append(recon_loss_epoch)
         kl_losses.append(kl_loss_epoch)
 
-        print('Epoch {} - (Training)\n\tLoss : {} '
-              '[Reconstruction={}, KL={}], Elapse {elapse:3.3f} s'.format(epoch,
-                                                                          total_loss_epoch,
-                                                                          recon_loss_epoch,
-                                                                          kl_loss_epoch,
-                                                                          elapse=time.time() - start))
+        print(
+            'Epoch {} - Training\n\tLoss : {} '
+            '[Reconstruction={}, KL={}]'.format(epoch,total_loss_epoch,
+                                                recon_loss_epoch, kl_loss_epoch)
+        )
 
-        if epoch % 500 == 0:
+        if epoch % hps.plot_every == 0:
             plot_losses(
                 epoch,
                 [total_losses],#, val_total_losses],
@@ -115,6 +112,22 @@ def train(model, optimizer):
             )
 
 
+def print_perp(model):
+    model.eval()
+    iters = 0
+    for batch, (xs) in enumerate(test_loader):
+        iters += 1
+        if USE_CUDA:
+            xs = xs.cuda()
+        reconstructed, kl_params = model(xs)
+        recon_loss = model.reconstruction_loss(xs, reconstructed, avg=False)
+        kl_loss = model.kl_loss(*kl_params, avg=False)
+        loss = recon_loss + kl_loss
+        counts = xs.sum(1)
+        avg = (loss / counts).mean().data.item()
+        print('The approximated perplexity is: ', math.exp(avg))
+    assert iters == 1
+
 if __name__== '__main__':
     model = ProdLDA(hps)
 
@@ -129,3 +142,4 @@ if __name__== '__main__':
                                     hps.learning_rate, momentum=hps.momentum)
 
     train(model, optimizer)
+    print_perp(model)
