@@ -64,6 +64,8 @@ def train(model, optimizer):
         # Train
         start = time.time()
         for batch, (xs) in enumerate(train_loader):
+            if USE_CUDA:
+                xs = xs.cuda()
             reconstructed, kl_params = model(xs)
             recon_loss = model.reconstruction_loss(xs, reconstructed)
             kl_loss = model.kl_loss(*kl_params)
