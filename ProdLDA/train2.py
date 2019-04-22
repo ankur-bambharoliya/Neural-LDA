@@ -42,7 +42,7 @@ def plot_losses(n_epochs, losses, labels, title,
         plt.savefig(f)
 
     # show
-    plt.show(10)
+    plt.show()
 
 
 def train(model, optimizer):
