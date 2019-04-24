@@ -2,19 +2,10 @@ import math
 from collections import defaultdict
 import numpy as np
 import codecs
+import utils
 
 window_total = 11268
 
-
-def load_vocab():
-    with open('./data/20news/vocab.new') as vocab_file:
-        line = vocab_file.readline()
-        vocab = []
-        while line:
-            parts = line.split(" ")
-            vocab.append(parts[0])
-            line = vocab_file.readline()
-    return vocab
 
 
 def load_word_count():
@@ -75,7 +66,7 @@ def calc_assoc(word1, word2, word_count):
     if word2 in word_count:
         w2_count = word_count[word2]
 
-    print(w1_count, w2_count, combined_count)
+
     if w1_count == 0 or w2_count == 0 or combined_count == 0:
         result = 0.0
     else:
@@ -89,7 +80,7 @@ def calc_assoc(word1, word2, word_count):
 def calc_npmi(topic_file, top_words = 10):
 
     word_count = load_word_count()
-    vocab = load_vocab()
+    vocab = utils.load_vocab()
 
     #read the topic file and compute the observed coherence
     topic_coherence = defaultdict(list) # {topicid: [tc]}
@@ -118,4 +109,4 @@ def calc_npmi(topic_file, top_words = 10):
     print ("Average Topic Coherence = %.3f" % np.mean(mean_coherence_list))
     print ("Median Topic Coherence = %.3f" % np.median(mean_coherence_list))
 
-calc_npmi('./results/lda_with_gibbs.txt', 8)
+calc_npmi('./results/nvm_lda_topics.txt', 8)
